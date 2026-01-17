@@ -12,7 +12,21 @@
 <header class="mobile-header">
   <h1>AR Mô Phỏng Thực Tế Ảo</h1>
   <p>Trải nghiệm mô hình 3D & AR 360° trực quan</p>
+  <button id="generate-qr" class="qr-button">Tạo QR cho Máy Chiếu</button>
 </header>
+
+<div id="qr-modal" class="qr-modal" style="display: none;">
+  <div class="qr-content">
+    <h3>Quét mã QR bằng điện thoại để kết nối</h3>
+    <div id="qrcode"></div>
+    <button id="close-qr">Đóng</button>
+  </div>
+</div>
+
+<div id="remote-viewer" class="remote-viewer" style="display: none;">
+  <div id="viewer-container"></div>
+  <button id="close-viewer">Đóng Máy Chiếu</button>
+</div>
 
 <div class="ar-list">
 
@@ -214,6 +228,8 @@
   © 2026 • AR Mobile. Được tạo bởi Nguyễn Văng Ngọc Tiến & Đỗ Nguyễn Đăng Khoa
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

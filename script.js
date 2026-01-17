@@ -155,6 +155,8 @@ window.addEventListener("DOMContentLoaded", () => {
   loadPreview("img-uranus", models.uranus.image);
   loadPreview("img-valence_electrons", models.valence_electrons.image);
   loadPreview("img-venus_planet_bedside_lamp", models.venus_planet_bedside_lamp.image);
+
+  setupQRCode();
 });
 
 /* ===== MỞ AR ===== */
@@ -177,4 +179,108 @@ function openAR(name) {
   }
 
   alert("Trang này chỉ hỗ trợ trên điện thoại.");
+}
+
+/* ===== QR CODE & REMOTE DISPLAY ===== */
+let peer = null;
+let conn = null;
+
+function setupQRCode() {
+  const generateBtn = document.getElementById('generate-qr');
+  const qrModal = document.getElementById('qr-modal');
+  const closeQrBtn = document.getElementById('close-qr');
+  const closeViewerBtn = document.getElementById('close-viewer');
+
+  generateBtn.addEventListener('click', generateQR);
+  closeQrBtn.addEventListener('click', () => qrModal.style.display = 'none');
+  closeViewerBtn.addEventListener('click', closeRemoteViewer);
+}
+
+function generateQR() {
+  const qrModal = document.getElementById('qr-modal');
+  const qrcodeDiv = document.getElementById('qrcode');
+
+  // Generate random peer ID
+  const peerId = Math.random().toString(36).substring(2, 15);
+
+  // Initialize PeerJS
+  peer = new Peer(peerId);
+
+  peer.on('open', (id) => {
+    // Generate QR code with the peer ID
+    const qr = qrcode(0, 'M');
+    qr.addData(`${window.location.origin}?remote=${id}`);
+    qr.make();
+
+    const qrImg = qr.createImgTag(4, 0);
+    qrcodeDiv.innerHTML = qrImg;
+
+    qrModal.style.display = 'flex';
+  });
+
+  peer.on('connection', (connection) => {
+    conn = connection;
+    qrModal.style.display = 'none';
+    showRemoteViewer();
+
+    conn.on('data', (data) => {
+      if (data.type === 'loadModel') {
+        loadRemoteModel(data.modelName);
+      }
+    });
+  });
+}
+
+function showRemoteViewer() {
+  const remoteViewer = document.getElementById('remote-viewer');
+  remoteViewer.style.display = 'flex';
+}
+
+function closeRemoteViewer() {
+  const remoteViewer = document.getElementById('remote-viewer');
+  remoteViewer.style.display = 'none';
+
+  if (conn) {
+    conn.close();
+    conn = null;
+  }
+  if (peer) {
+    peer.destroy();
+    peer = null;
+  }
+}
+
+function loadRemoteModel(modelName) {
+  const viewerContainer = document.getElementById('viewer-container');
+  const model = models[modelName];
+
+  if (!model) return;
+
+  viewerContainer.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+      <img src="${model.image}" alt="${modelName}" style="max-width: 300px; max-height: 300px; margin-bottom: 20px;">
+      <h2>${modelName.replace(/_/g, ' ')}</h2>
+      <p>Mô hình đang được hiển thị từ xa</p>
+    </div>
+  `;
+}
+
+// Check if this is a remote connection
+const urlParams = new URLSearchParams(window.location.search);
+const remoteId = urlParams.get('remote');
+if (remoteId) {
+  // This is the phone connecting to the computer
+  peer = new Peer();
+
+  peer.on('open', () => {
+    conn = peer.connect(remoteId);
+
+    conn.on('open', () => {
+      // Override openAR to send to remote instead
+      window.originalOpenAR = openAR;
+      window.openAR = (name) => {
+        conn.send({ type: 'loadModel', modelName: name });
+      };
+    });
+  });
 }
